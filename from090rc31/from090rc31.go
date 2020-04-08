@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/boltdb/bolt"
-	"github.com/influxdb/influxdb/client"
-	"github.com/vladlopes/influxdb-migrate/database"
+	"github.com/FernandoMorais/influxdb/client"
+	"github.com/FernandoMorais/influxdb-migrate/database"
 )
 
 type versiondb struct {

@@ -15,9 +15,9 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/hashicorp/go-msgpack/codec"
 	"github.com/hashicorp/raft"
-	"github.com/influxdb/influxdb/client"
-	"github.com/influxdb/influxdb/influxql"
-	"github.com/vladlopes/influxdb-migrate/database"
+	"github.com/FernandoMorais/influxdb/client"
+	"github.com/FernandoMorais/influxdb/influxql"
+	"github.com/FernandoMorais/influxdb-migrate/database"
 )
 
 type replaceescaped struct {

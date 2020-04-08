@@ -8,12 +8,12 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/influxdb/influxdb/client"
-	"github.com/influxdb/influxdb/models"
-	"github.com/vladlopes/influxdb-migrate/database"
-	"github.com/vladlopes/influxdb-migrate/from090"
-	"github.com/vladlopes/influxdb-migrate/from090rc31"
-	"github.com/vladlopes/influxdb-migrate/from092"
+	"github.com/FernandoMorais/influxdb/client"
+	"github.com/FernandoMorais/influxdb/models"
+	"github.com/FernandoMorais/influxdb-migrate/database"
+	"github.com/FernandoMorais/influxdb-migrate/from090"
+	"github.com/FernandoMorais/influxdb-migrate/from090rc31"
+	"github.com/FernandoMorais/influxdb-migrate/from092"
 )
 
 var (

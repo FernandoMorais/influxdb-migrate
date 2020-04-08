@@ -1,5 +1,5 @@
 # influxdb-migrate
-Tool to migrate between [Influxdb](https://github.com/influxdb/influxdb) database versions.
+Tool to migrate between [Influxdb](https://github.com/FernandoMorais/influxdb) database versions.
 
 # Why
 Although still not in a stable 1.0 release, Influxdb already had a lot of features that were essential for a project I am working on. It was installed a while ago and the data that was collected couldn't be lost.
@@ -22,7 +22,7 @@ The migration will create all databases, retention policies if instructed to do 
 # How to use it
 You will need a valid Go installation (at least 1.4).
 
-`go get github.com/vladlopes/influxdb-migrate`
+`go get github.com/FernandoMorais/influxdb-migrate`
 
 After building (or installing), use the switch -h to see the parameters for the command.
 
