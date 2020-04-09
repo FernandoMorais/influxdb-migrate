@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"errors"
 
 	"github.com/boltdb/bolt"
 	"github.com/gogo/protobuf/proto"
@@ -150,7 +151,7 @@ func u64tob(v uint64) []byte {
 	return b
 }
 
-func getfields(mname string, m *measurementFields, b []byte) (ret map[string]interface{}) {
+func getfields(mname string, m *measurementFields, b []byte) (ret map[string]interface{}, err error) {
 	ret = make(map[string]interface{})
 	for {
 		if len(b) < 1 {
@@ -164,6 +165,11 @@ func getfields(mname string, m *measurementFields, b []byte) (ret map[string]int
 				break
 			}
 		}
+
+		if f == nil {
+			break
+		}
+		
 		if f.ID == 0 {
 			log.Fatalf("Couldn't find field %d in measurement %s\n", fid, mname)
 		}
@@ -184,7 +190,41 @@ func getfields(mname string, m *measurementFields, b []byte) (ret map[string]int
 			b = b[2:]
 		case influxql.String:
 			size := binary.BigEndian.Uint16(b[1:3])
+			b_size := len(b)
+
+			defer func() {
+				if r := recover(); r != nil {
+					t_value := string(b[3:])
+
+					fmt.Printf("\nERROR: --------------------------------------------------")
+					fmt.Printf("\nERROR: converting field")
+					fmt.Printf("\nERROR: --------------------------------------------------")
+					fmt.Printf("\nERROR:  err: %+v", r)
+					fmt.Printf("\nERROR:  f: %+v",f)
+					fmt.Printf("\nERROR:  size: %v", size)
+					fmt.Printf("\nERROR:  b_size: %v", b_size)
+					fmt.Printf("\nERROR:  t_value: %s", t_value)
+					fmt.Printf("\nERROR:  m: %+v", m)
+					fmt.Printf("\nERROR:  ret: %+v", ret)
+					fmt.Printf("\nERROR:  b: %v", b)
+					fmt.Printf("\nERROR: --------------------------------------------------\n")
+
+					// log.Fatalf("\nError converting field: %v\n\n", r)
+
+					switch x := r.(type) {
+					case string:
+						err = errors.New(x)
+					case error:
+						err = x
+					default:
+						// Fallback err (per specs, error strings should be lowercase w/o punctuation
+						err = errors.New("unknown panic")
+					}
+				}
+			}() 
+			
 			value = string(b[3 : size+3])
+
 			b = b[size+3:]
 		default:
 			log.Fatalf("unsupported value type during decode fields: %s", f.Type)
@@ -364,12 +404,19 @@ func getb1points(tx *bolt.Tx,
 					Database:        dbname,
 					RetentionPolicy: rpname,
 				}
+				
 				b.ForEach(func(k, v []byte) error {
+					var fields map[string]interface {}
+					var err error
+					if fields, err = getfields(mname, measurements[mname], v); err != nil {
+						log.Fatalf("\nError converting serie: %v\n\n", err)
+					}
+
 					bp.Points = append(bp.Points, client.Point{
 						Measurement: mname,
 						Time:        time.Unix(0, int64(btou64(k))),
 						Tags:        tags,
-						Fields:      getfields(mname, measurements[mname], v),
+						Fields:      fields,
 					})
 					return nil
 				})
@@ -456,12 +503,37 @@ func getbz1points(tx *bolt.Tx,
 					}
 
 					for _, b := range entries {
-						bp.Points = append(bp.Points, client.Point{
-							Measurement: mname,
-							Time:        time.Unix(0, int64(btou64(b[0:8]))),
-							Tags:        tags,
-							Fields:      getfields(mname, measurements[mname], b[entryHeaderSize:]),
-						})
+						var fields map[string]interface {}
+						if fields, err = getfields(mname, measurements[mname], b[entryHeaderSize:]); err != nil {
+							point := client.Point{
+								Measurement: mname,
+								Time:        time.Unix(0, int64(btou64(b[0:8]))),
+								Tags:        tags,
+								Fields:      fields,
+							}
+
+							fmt.Printf("\nERROR: --------------------------------------------------")
+							fmt.Printf("\nERROR: Converting serie")
+							fmt.Printf("\nERROR: --------------------------------------------------")
+							fmt.Printf("\nERROR:  mname: %+v", mname)
+							fmt.Printf("\nERROR:  time: %+v", time.Unix(0, int64(btou64(b[0:8]))))
+							fmt.Printf("\nERROR:  tags: %+v", tags)
+							fmt.Printf("\nERROR:  tags: Repository =~ /%s/ AND ImageName =~ /%s/ AND ID =~ /%s/ AND ImageVersion =~ /%s/ AND Package =~ /%s/", tags["Repository"], tags["ImageName"], tags["ID"], tags["ImageVersion"], tags["Package"])
+							fmt.Printf("\nERROR:  fields: %+v", fields)
+							fmt.Printf("\nERROR:  entryHeaderSize: %v", entryHeaderSize)
+							fmt.Printf("\nERROR:  b: %v", b)
+							fmt.Printf("\nERROR:  point: %+v", point)
+							fmt.Printf("\nERROR: --------------------------------------------------\n")
+	
+							// log.Fatalf("\nError converting serie: %v\n\n", err)
+						} else {
+							bp.Points = append(bp.Points, client.Point{
+								Measurement: mname,
+								Time:        time.Unix(0, int64(btou64(b[0:8]))),
+								Tags:        tags,
+								Fields:      fields,
+							})
+						}
 					}
 					cpoints <- bp
 					return nil
